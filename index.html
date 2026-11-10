@@ -1,0 +1,224 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculatrice</title>
+<style>
+  :root {
+    --bg: #1a1a2e;
+    --panel: #16213e;
+    --btn-num: #0f3460;
+    --btn-op: #e94560;
+    --btn-eq: #e94560;
+    --btn-clear: #533483;
+    --btn-fn: #1a1a2e;
+    --text: #eaeaea;
+    --display-text: #ffffff;
+    --shadow: 0 8px 32px rgba(0,0,0,.45);
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+  .calc {
+    background: var(--panel);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 20px;
+    width: 320px;
+    user-select: none;
+  }
+  .display {
+    background: rgba(0,0,0,.35);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 18px;
+    min-height: 90px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: flex-end;
+    overflow: hidden;
+  }
+  .display .history {
+    font-size: 13px;
+    color: rgba(255,255,255,.4);
+    min-height: 18px;
+    word-break: break-all;
+    text-align: right;
+  }
+  .display .current {
+    font-size: 36px;
+    font-weight: 300;
+    color: var(--display-text);
+    word-break: break-all;
+    line-height: 1.1;
+    transition: font-size .1s;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  button {
+    border: none;
+    border-radius: 10px;
+    height: 62px;
+    font-size: 18px;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--text);
+    background: var(--btn-num);
+    transition: transform .08s, filter .08s;
+    outline: none;
+  }
+  button:active { transform: scale(.93); filter: brightness(1.25); }
+  button.op { background: rgba(233,69,96,.18); color: var(--btn-op); }
+  button.eq { background: var(--btn-eq); color: #fff; grid-column: span 2; }
+  button.clear { background: var(--btn-clear); }
+  button.fn { background: var(--btn-fn); font-size: 15px; }
+  button.zero { grid-column: span 2; }
+  .brand {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 11px;
+    color: rgba(255,255,255,.18);
+    letter-spacing: .08em;
+  }
+</style>
+</head>
+<body>
+<div class="calc">
+  <div class="display">
+    <div class="history" id="history"></div>
+    <div class="current" id="current">0</div>
+  </div>
+  <div class="grid">
+    <!-- row 1 -->
+    <button class="clear" onclick="calcAction('C')">C</button>
+    <button class="fn"    onclick="calcAction('sign')">+/−</button>
+    <button class="fn"    onclick="calcAction('pct')">%</button>
+    <button class="op"    onclick="calcAction('/')">÷</button>
+    <!-- row 2 -->
+    <button onclick="calcAction('7')">7</button>
+    <button onclick="calcAction('8')">8</button>
+    <button onclick="calcAction('9')">9</button>
+    <button class="op" onclick="calcAction('*')">×</button>
+    <!-- row 3 -->
+    <button onclick="calcAction('4')">4</button>
+    <button onclick="calcAction('5')">5</button>
+    <button onclick="calcAction('6')">6</button>
+    <button class="op" onclick="calcAction('-')">−</button>
+    <!-- row 4 -->
+    <button onclick="calcAction('1')">1</button>
+    <button onclick="calcAction('2')">2</button>
+    <button onclick="calcAction('3')">3</button>
+    <button class="op" onclick="calcAction('+')">+</button>
+    <!-- row 5 -->
+    <button class="zero" onclick="calcAction('0')">0</button>
+    <button onclick="calcAction('.')">.</button>
+    <button class="eq"   onclick="calcAction('=')">=</button>
+  </div>
+  <div class="brand">calculatrice · olliE bench</div>
+</div>
+
+<script>
+  const displayEl  = document.getElementById('current');
+  const historyEl  = document.getElementById('history');
+
+  let current   = '0';
+  let stored    = null;
+  let operator  = null;
+  let justEvald = false;
+
+  function update() {
+    displayEl.textContent = current;
+    const len = current.length;
+    displayEl.style.fontSize = len > 12 ? '20px' : len > 8 ? '28px' : '36px';
+  }
+
+  function calcAction(val) {
+    if ('0123456789'.includes(val)) {
+      if (justEvald) { current = val; justEvald = false; }
+      else current = (current === '0') ? val : (current.length < 15 ? current + val : current);
+
+    } else if (val === '.') {
+      if (justEvald) { current = '0.'; justEvald = false; return update(); }
+      if (!current.includes('.')) current += '.';
+
+    } else if (val === 'C') {
+      current = '0'; stored = null; operator = null; justEvald = false;
+      historyEl.textContent = '';
+
+    } else if (val === 'sign') {
+      current = current.startsWith('-') ? current.slice(1) : (current !== '0' ? '-' + current : '0');
+
+    } else if (val === 'pct') {
+      current = String(parseFloat(current) / 100);
+
+    } else if (['+', '-', '*', '/'].includes(val)) {
+      if (operator && !justEvald) {
+        const res = compute(parseFloat(stored), parseFloat(current), operator);
+        historyEl.textContent = `${stored} ${opSymbol(operator)} ${current} =`;
+        current = fmtResult(res);
+      }
+      stored = current;
+      operator = val;
+      justEvald = true;
+      historyEl.textContent = `${stored} ${opSymbol(val)}`;
+
+    } else if (val === '=') {
+      if (operator && stored !== null) {
+        historyEl.textContent = `${stored} ${opSymbol(operator)} ${current} =`;
+        const res = compute(parseFloat(stored), parseFloat(current), operator);
+        current = fmtResult(res);
+        stored = null; operator = null; justEvald = true;
+      }
+    }
+    update();
+  }
+
+  function compute(a, b, op) {
+    if (op === '+') return a + b;
+    if (op === '-') return a - b;
+    if (op === '*') return a * b;
+    if (op === '/') return b === 0 ? 'Erreur' : a / b;
+  }
+
+  function fmtResult(r) {
+    if (r === 'Erreur') return 'Erreur';
+    const s = parseFloat(r.toPrecision(10)).toString();
+    return s;
+  }
+
+  function opSymbol(op) {
+    return { '+': '+', '-': '−', '*': '×', '/': '÷' }[op] || op;
+  }
+
+  document.addEventListener('keydown', e => {
+    if ('0123456789'.includes(e.key)) calcAction(e.key);
+    else if (e.key === '.') calcAction('.');
+    else if (e.key === '+') calcAction('+');
+    else if (e.key === '-') calcAction('-');
+    else if (e.key === '*') calcAction('*');
+    else if (e.key === '/') { e.preventDefault(); calcAction('/'); }
+    else if (e.key === 'Enter' || e.key === '=') calcAction('=');
+    else if (e.key === 'Escape') calcAction('C');
+    else if (e.key === 'Backspace') {
+      if (!justEvald) current = current.length > 1 ? current.slice(0, -1) : '0';
+      update();
+    }
+  });
+</script>
+</body>
+</html>
+
+</body></html>
